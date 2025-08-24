@@ -2,7 +2,7 @@
 
 ## Overview
 
-TTRE is a simple regex engine which enables the user to convert a regex to an NFA or DFA, which can then be used to evaluate an input string. By having the ability to convert a regex to a DFA Toni prevents exponential ReDoS.
+TTRE is a simple regex engine which enables the user to convert a regex to an NFA or DFA, which can then be used to evaluate an input string. By having the ability to convert a regex to a DFA Toni prevents exponential ReDoS. 
 
 ## Features
 
