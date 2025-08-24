@@ -1,0 +1,62 @@
+# Assume we have a dictionary "states" of states and we can access the states
+# by writing "q0" or in general "q<state_number>"
+
+epsilon_closures = dict("state":epsilon_closure = list[State])
+
+def nfa_to_dfa():
+	
+	symbols = list[0...256]
+
+	states = dict_of_states
+	
+	get_epsilon_closures(states["q0"])
+	
+	unprocessed_states = dict("state_name":closure_of_state)
+	unprocessed_states["q0"]=epsilon_closure["q0"]
+	
+	processed_states = []
+
+	while unprocessed_states not empty:
+		current_state = unprocessed_states.pop("q0") 
+		for symbol in symbols:
+			output = list[]
+			for state in current_state.closure:
+				# Handle different cases, meaning State, Char_State,Star_State
+				current_symbol = state.character_code
+				if symbol == current_symbol:
+					output.append(state)
+			new_closure = union_closures(output)
+			if new_closure not in processed_states:
+				new_dfa_state = DFA_State(new_closure, dict())
+				unprocessed_states.append[new_closure] = new_dfa_state
+	
+			current_state = new_transition(current_state, new_output_state)
+
+		processed_states.append(current_state)
+
+def get_epsilon_closures(current_state: State):
+	
+	epsilon_closure = [current_state]
+
+	if current_state.character not == -1:
+		for state in output_states:
+			get_epsilon_closure(state)
+	else:
+		epsilon_closure.extend(current_state.output_states)
+				
+		for state in output_states:
+			epsilon_closure.extend(get_epsilon_closure(state))
+
+	epsilon_closures["statename"]=epsilon_closure
+
+	return epsilon_closure
+
+def union_closure(to_closure list[State]):
+	union = epsilon_closures[to_closure[0].name]
+	for state in to_closure[1:]:
+		current_closure = epsilon_closures[state.name]
+		union = list(set(union) | set(current_closure))
+	
+	sorted_union = sorted((element.name for element in union), key=lambda name: int(name[1:]))
+	
+	return "_".join(sorted_union)

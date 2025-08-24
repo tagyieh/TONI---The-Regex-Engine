@@ -1,0 +1,237 @@
+case 'character/visitAtom':
+	if 'charClass':
+		allowed_states = visitCharClass charClass
+		s = Char_Class_State([allowed_states], [], false)
+		f = Partial_NFA(s, [s])
+	elif 'char':
+		character_code = ASCII(character)
+		s = State(character_code, [], false)
+		f = Partial_NFA(s,[s])
+	else:
+		f = visitRegExp regExp
+	return f
+
+case 'concatenation/visitBranch':
+	if pieces.length == 1:
+		return visit pieces[0]
+	first_piece = visit pieces[0]
+	for piece in pieces[1:]:
+		next_piece = visit piece
+		fix_dangling(first_piece,next_piece)
+		first_piece = Partial_NFA(first_piece.start, next_piece.dangling_states)
+
+	return first_piece
+
+case 'or/visitRegExp':
+	if branches.length == 1:
+		return visit branches[0]
+	branch_list = []
+	for branch in branches:
+		current_branch = visit branch
+		branch_list.append(current_branch)
+	s = State(-1, branch_list, false)
+	f = Partial_NFA(s, branch_list)
+	return f
+
+case 'visitPiece':
+	to_be_quantified = visitAtom atom
+	if !quantifier:
+		return to_be_quantified
+	elif quantifier == STAR:
+		s = State(-1,to_be_quantified.start, false)
+		fix_dangling(to_be_quantified, s)
+		f = Partial_NFA(s,[s])
+		return f
+	elif quantifier == QUESTION:
+		s = State(-1, to_be_quantified.start, false)
+		f = Partial_NFA(s,[s,to_be_quantified])
+		return f
+	elif quantifier == PLUS:
+		s = State(-1,to_be_quantified.start, false)
+		fix_dangling(to_be_quantified, s)
+		f = Partial_NFA(to_be_quantified.start, [s])
+		return f
+	else:
+		res = visitQuantity quantity
+		min = res[min]
+		max = res[max]
+		base = None
+		if res[type] == "range":
+			base = deepcopy(to_be_quantified) # Maybe make a check for min = 0
+			missing_dangling = []
+			for _ in range(min-1):
+				e = deepcopy(to_be_quantified)
+				fix_dangling(base, e.start)
+				base = Partial_NFA(base.start, e.dangling_states]
+			for _ in range(max-min):
+				e = deepcopy(to_be_quantified)
+				s = State(-1, e.start, false)
+				missing_dangling.extend(s)
+				fix_dangling(base, s)
+				base = Partial_NFA(base.start, e.dangling_states)
+			base = Partial_NFA(base.start, missing_dangling)
+		elif res[type] == "min":
+			base = deepcopy(to_be_quantified) # Maybe make a check for min = 0
+			for _ in range(min-1):
+				e = deepcopy(to_be_quantified)
+				fix_dangling(base, e.start)
+				base = Partial_NFA(base.start, e.dangling_states]
+			e = deepcopy(to_be_quantified)
+			s = State(-1, e.start, false)
+			fix_dangling(e, s)
+			fix_dangling(base, s)
+			base = Partial_NFA(base.start, [s])
+		elif res[type] == "max":
+			e = deepcopy(to_be_quantified)
+			s = State(-1, e.start, false)
+			base = Partial_NFA(s, e.dangling_states)
+			missing_dangling = [s]
+			for _ in range(max-1):
+				e = deepcopy(to_be_quantified)
+				s = State(-1, e.start, false)
+				missing_dangling.extend(s)
+				fix_dangling(base, s)
+				base = Partial_NFA(base.start, e.dangling_states)
+			base = Partial_NFA(base.start, missing_dangling)
+		elif res[type] == "exact":
+			base = deepcopy(to_be_quantified) # Maybe make a check for min = 0
+			for _ in range(min-1):
+				e = deepcopy(to_be_quantified)
+				fix_dangling(base, e.start)
+				base = Partial_NFA(base.start, e.dangling_states]
+		return base
+
+case 'visitQuantity':
+	idk = dict{type: "", min: 0, max: 0}
+	if quantRange:
+		idk[type] = "range"
+		idk[min] = QuantExact[0]
+		idk[max] = QuantExact[1]		
+	elif quantMin:
+		idk[type] = "min"
+		idk[min] = QuantExact[0]
+	elif quantMax:
+		idk[type] = "max"
+		idk[max] = QuantExact[0]
+	elif quantExact:
+		idk[type] = "exact"
+		idk[min] = QuantExact[0] # For exact we put number in
+					   min
+	return idk
+
+case 'visitCharClassExpr':
+	# @TODO: Return list of allowed chars
+
+case 'visitCharClass':
+	if WildcardEsc:
+		return [0-9 + 11-255]
+	elif CharClassEsc:
+		if SingleCharEsc OR NestedSingleCharEsc:
+			if \n or \r or \t:
+				return [ord(\char)]
+			else:
+				return [ord(char)]
+		elif MultiCharEsc OR NestedMultiCharEsc:
+			if \w:
+				return [a-z,A-Z,0-9,_]
+			elif \W:
+				return[^a-z,A-Z,0-9,_]
+			elif \d:
+				return[0-9]
+			elif \D:
+				return[^0-9]
+			elif \s:
+				return[\t,\n,\r,SPACE]
+			elif \S:
+				return[^\t,\n,\r,SPACE]
+	elif CharClassExp:
+		if [:
+			exclusive = False
+		else:
+			exclusive = True
+		
+		allowed_chars = visitCharGroup charGroup
+		if exclusive:
+			return ^allowed_chars
+		else:
+			return allowed_chars
+
+case 'visitCharGroup':
+	allowed_chars = []
+	if "-":
+		return -
+	else:
+		allowed_chars = visitPosCharGroup charGroup
+		if "-":
+			allowed_chars.extend("-")
+	return allowed_chars
+
+case 'visitCharRange':
+	if 'seRange':
+		start = visitCharOrEsc charOrEsc
+		end = visitCharOrEsc charOrEsc
+		if start > end:
+			exit(1)
+		return [start-end]
+	elif 'XmlChar:
+		return [char]
+
+case 'visitCharOrEsc':
+	if XmlChar:
+		return [char]
+	else:
+		return [visitCharClass SingleCharEsc]
+		
+case 'visitPosCharGroup':
+	characters_to_allow = []
+	if '-':
+		characters_to_allow.extend('-')
+	
+	if charRange:
+		characters.to_allow.extend(visitCharRange charRange)
+	elif charClassEsc:
+		characters_to_allow.extend(visitCharClass charClassEsc)
+	
+	while DASH or charRange or charClassEsc:
+		if '-':
+			characters_to_allow.extend('-')
+		if charRange:
+			characters.to_allow.extend(visitCharRange charRange)
+		elif charClassEs<c:
+			characters_to_allow.extend(visitCharClass charClassEsc)
+	# Check for duplicates in characters_to_allow before extending
+	return characters_to_allow
+
+
+case 'visitRoot':
+	final_nfa = visitRegExp regExp
+	if '^' and '$':
+		start = State(-1,final_nfa.start,false)
+		end = State(-1,[],true)
+		fix_dangling(final_nfa,end)
+		return start
+	elif not '^' and not '$':
+		start = State(-1,final_nfa.start,false)
+		end = State(-1,[],true)
+		fix_danglin(final_nfa,end)
+		e_star_start = Star_State(start,false)
+		e_star_end = Star_State(end,false)
+		start.output_states.extend(e_star_start)
+		end.output_states.extend(e_star_end)
+		return start
+	elif '^' and not '$':
+		start = State(-1, final_nfa.start, false)
+		end = State(-1,[],true)
+		fix_dangling(final_nfa,end)
+		e_star_end = Star_State(end,false)
+		end.output_states.extend(e_star_end)
+		return start
+	elif not '^' and '$':
+		start = State(-1, final_nfa.start, false)
+		end = State(-1,[],true)
+		fix_dangling(final_nfa,end)
+		e_star_start = Star_State(start,false)
+		start.out_states.extend(e_star_start)
+		return start
+
+case '

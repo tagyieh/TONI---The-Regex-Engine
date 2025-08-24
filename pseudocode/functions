@@ -1,0 +1,3 @@
+def fix_dangling(Partial_NFA, State my_state):
+	for dangling in Partial_NFA.dangling_states:
+		dangling.output_states.extend(my_state)

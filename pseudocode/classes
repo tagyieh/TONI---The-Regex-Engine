@@ -1,0 +1,33 @@
+class State {
+	int character_code # -1 is empty transition
+	list[state] output_states
+	bool isFinal
+}
+
+class Star_State {
+	const list[int] character_codes = [0-255]
+	list[state] output_states
+	bool isFinal
+}
+
+class Char_Class_State {
+	list[int] character_codes
+	list[state] output_states
+	bool isFinal
+}
+
+class Partial_NFA {
+	State start
+	list[state] dangling_states
+}
+
+class NFA {
+	int num_states
+	list[state] states
+
+	method traverse() # Evaluate a string starting from states[0]
+}
+
+class DFA {
+
+}
